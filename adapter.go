@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -28,6 +29,7 @@ type NetHTTPAdapter struct {
 	native       http.Handler
 	httpServer   *http.Server
 	maxBodyBytes int64
+	serveOptions httpcontract.ServeOptions
 	mu           sync.Mutex
 	state        lifecycleState
 	active       int
@@ -62,7 +64,8 @@ func newAdapter(config httpcontract.Config) *NetHTTPAdapter {
 	}
 	s := &NetHTTPAdapter{
 		execute: config.Execute, maxBodyBytes: opts.MaxBodyBytes,
-		drained: make(chan struct{}), shutdownDone: make(chan struct{}),
+		serveOptions: config.Serve.Clone(),
+		drained:      make(chan struct{}), shutdownDone: make(chan struct{}),
 	}
 	s.httpServer = &http.Server{
 		Handler: s, ReadHeaderTimeout: opts.ReadHeaderTimeout, ReadTimeout: opts.ReadTimeout,
@@ -80,22 +83,36 @@ func (s *NetHTTPAdapter) Handler() http.Handler {
 }
 
 // Serve는 유효한 리스너를 소유하며 인스턴스당 한 번만 실행합니다.
-func (s *NetHTTPAdapter) Serve(listener net.Listener) error {
+func (s *NetHTTPAdapter) Serve(listener net.Listener, options ...httpcontract.ServeOption) (serveErr error) {
 	if isNil(listener) {
 		return fmt.Errorf("%w: listener is nil", httpcontract.ErrInvalidState)
 	}
+	owned := &ownedListener{Listener: listener}
+	defer func() {
+		if closeErr := owned.Close(); closeErr != nil {
+			serveErr = errors.Join(serveErr, closeErr)
+		}
+	}()
 	if s == nil || s.httpServer == nil || s.native == nil {
-		return errors.Join(fmt.Errorf("%w: NetHTTPAdapter is not initialized", httpcontract.ErrInvalidAdapter), listener.Close())
+		return fmt.Errorf("%w: NetHTTPAdapter is not initialized", httpcontract.ErrInvalidAdapter)
+	}
+	resolved, err := s.serveOptions.Resolve((factory{}).Capabilities(), options...)
+	if err != nil {
+		return err
 	}
 	s.mu.Lock()
 	if s.state != stateReady {
 		s.mu.Unlock()
-		return errors.Join(fmt.Errorf("%w: Serve requires a new adapter", httpcontract.ErrInvalidState), listener.Close())
+		return fmt.Errorf("%w: Serve requires a new adapter", httpcontract.ErrInvalidState)
 	}
 	s.state = stateServing
 	s.mu.Unlock()
-	// net/http.Server.Serve는 모든 반환 경로에서 전달받은 리스너를 닫습니다.
-	err := s.httpServer.Serve(listener)
+	// 공개 진입점은 하나이며 TLS 연결 처리는 표준 TLS 리스너에 맡깁니다.
+	var native net.Listener = owned
+	if resolved.TLS != nil {
+		native = tls.NewListener(owned, resolved.TLS)
+	}
+	err = s.httpServer.Serve(native)
 	if errors.Is(err, http.ErrServerClosed) {
 		return httpcontract.ErrServerClosed
 	}
@@ -103,6 +120,17 @@ func (s *NetHTTPAdapter) Serve(listener net.Listener) error {
 		return fmt.Errorf("%w: Serve returned without an error", httpcontract.ErrInvalidAdapter)
 	}
 	return err
+}
+
+type ownedListener struct {
+	net.Listener
+	once sync.Once
+	err  error
+}
+
+func (l *ownedListener) Close() error {
+	l.once.Do(func() { l.err = l.Listener.Close() })
+	return l.err
 }
 
 // ServeHTTP의 바깥 경계는 native 미들웨어와 업그레이드의 반환까지 추적합니다.

@@ -41,6 +41,7 @@ var _ httpcontract.NetHTTPUpgradeFactory = factory{}
 func (factory) Capabilities() httpcontract.Capabilities {
 	return httpcontract.Capabilities{
 		ContractVersion: httpcontract.ContractVersion,
+		TLS:             true,
 		NetHTTPHandler:  true, NetHTTPUpgrade: true, ClientDisconnectCancellation: true,
 		// net/http 서버 자체의 패닉 복구는 비활성화할 수 없습니다.
 		ServerOptions: httpcontract.ServerOptionSupport{

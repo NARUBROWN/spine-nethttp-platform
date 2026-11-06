@@ -44,6 +44,27 @@ app := spine.New(spine.WithHTTPAdapter(factory))
 
 `StopAccepting` 이후 새 요청에는 503을 반환합니다. `Shutdown`은 진행 요청과 native 후처리를 기다립니다. 호출 context가 만료돼도 정리는 계속되며 새 context로 다시 기다릴 수 있습니다. 요청 context는 native handler가 반환하거나 클라이언트가 연결을 끊으면 취소됩니다. 장기 WebSocket 연결은 Spine 런타임이 종료합니다.
 
+## TLS 실행
+
+인증서를 읽은 `*tls.Config`를 `boot.HTTPOptions.TLS`에 지정합니다. 아래 예시는 `crypto/tls`와 `github.com/NARUBROWN/spine/pkg/boot`를 사용합니다.
+
+```go
+certificate, err := tls.LoadX509KeyPair("server.crt", "server.key")
+if err != nil {
+    return err
+}
+return app.RunContext(ctx, boot.Options{
+    Address: ":8443",
+    HTTP: &boot.HTTPOptions{
+        TLS: &tls.Config{Certificates: []tls.Certificate{certificate}},
+    },
+})
+```
+
+TLS가 nil이면 평문 HTTP를 실행합니다. 주소를 생략하면 TLS는 `:https`, 평문은 `:http`입니다. Prepare는 인증서 구성과 지원 여부를 검사하며 인증서 선택 콜백은 호출하지 않습니다. 설정과 인증서 바이트는 복사하고 개인 키 객체와 콜백은 공유합니다.
+
+`Serve(listener)`는 준비한 TLS 설정을 사용합니다. `httpcontract.WithTLS(config)`를 두 번째 인자로 전달하면 실행 설정을 교체하며 마지막 옵션이 우선합니다. `httpcontract`는 `github.com/NARUBROWN/spine/contract/http`의 import 별칭입니다. `WithTLS(nil)`과 nil 옵션은 오류입니다. 공개 `ServeTLS`는 추가하지 않습니다. 외부 서버에 handler만 연결하면 TLS는 외부 서버가 설정하고 실행합니다. HTTP 버전 선택과 ALPN 정책은 이번 변경 범위에 포함하지 않습니다.
+
 ## 옵션
 
 설정은 `boot.HTTPOptions`에서 전달합니다.
@@ -73,4 +94,4 @@ python3 scripts/verify-http-platforms.py \
   --output-dir /tmp/spine-http-platform-proof
 ```
 
-스크립트는 Go 1.25.5에서 플랫폼 테스트와 Echo 비교 E2E에 race 검사와 vet을 실행합니다. 저장소의 `go.mod`, `go.sum`은 변경하지 않습니다. E2E는 실제 TCP 서버에서 DTO 결과, 인증 전 무읽기, 본문 제한, multipart 파일 수명, 종료 대기, WebSocket과 runtime OpenAPI를 검사합니다. TLS, HTTP/2와 성능은 이 검증 범위에 포함하지 않습니다.
+스크립트는 Go 1.25.5에서 플랫폼 테스트와 Echo 비교 E2E에 race 검사와 vet을 실행합니다. 저장소의 `go.mod`, `go.sum`은 변경하지 않습니다. E2E는 실제 TCP 서버에서 DTO 결과, 인증 전 무읽기, 본문 제한, multipart 파일 수명, 종료 대기, WebSocket과 runtime OpenAPI를 검사합니다. TLS는 HTTPS 실행, 설정 교체, 인증서 콜백, 신뢰 검증 실패와 연결 해제 취소를 확인합니다. HTTP/2와 성능은 이 검증 범위에 포함하지 않습니다.

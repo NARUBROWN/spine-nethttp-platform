@@ -1,0 +1,12 @@
+# 로컬 개발 환경과 빌드 산출물
+go.work
+go.work.sum
+bin/
+dist/
+*.test
+*.out
+*.prof
+.DS_Store
+/docs/work/
+
+__pycache__/

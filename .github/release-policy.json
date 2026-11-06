@@ -1,0 +1,31 @@
+{
+  "schema_version": "spine.release-policy/v2",
+  "kind": "platform",
+  "module": "github.com/NARUBROWN/spine-nethttp-platform",
+  "next_version": "v0.1.0",
+  "preview_hours": 72,
+  "rc_hours": 24,
+  "stable_interval_hours": 168,
+  "approval_environment": "release-stable",
+  "reviewer_login": "NARUBROWN",
+  "branches": {
+    "preview": "preview",
+    "rc": "rc",
+    "stable": "main"
+  },
+  "channels": {
+    "preview": {
+      "core_version": "v0.7.0-preview.3",
+      "modules": {}
+    },
+    "rc": {
+      "core_version": "v0.7.0-rc.1",
+      "modules": {}
+    },
+    "stable": {
+      "core_version": "v0.7.0",
+      "modules": {}
+    }
+  },
+  "ci_core": "a2b99fbe2d479294a0b8ef02636e603adeb03e9f"
+}

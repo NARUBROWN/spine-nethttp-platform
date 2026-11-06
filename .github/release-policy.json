@@ -15,7 +15,7 @@
   },
   "channels": {
     "preview": {
-      "core_version": "v0.7.0-preview.3",
+      "core_version": "v0.7.0-preview.4",
       "modules": {}
     },
     "rc": {
@@ -27,5 +27,5 @@
       "modules": {}
     }
   },
-  "ci_core": "a2b99fbe2d479294a0b8ef02636e603adeb03e9f"
+  "ci_core": "98f95bd02c7e9a22cf5cb6450d479adf2808c940"
 }

@@ -2,7 +2,18 @@
 
 Spine 앱을 Go 표준 `net/http` 서버에서 실행합니다. 요청 본문, DTO 바인딩과 검증은 Spine 코어가 처리하며 플랫폼은 원시 입력, 응답 출력과 서버 수명을 담당합니다. 직접 의존하는 모듈은 Spine 하나입니다.
 
-HTTP 계약 `spine.http-adapter/v3`를 구현하며 대상 버전은 `v0.1.0`입니다. 이 소스의 Preview 조합은 `v0.1.0-preview.2`와 코어 `v0.7.0-preview.4`입니다. CLI `v0.4.3-preview.4`에서 `--platform nethttp`로 생성할 수 있습니다. 공개 설치 성공은 해당 태그의 release manifest로 확인합니다. 공개된 v2 코어와 함께 사용할 수 없습니다. 아래 검증 스크립트는 v3 코어와 플랫폼 소스를 임시 main-module 설정으로 연결하며 공개 모듈 설치는 별도 검증 대상입니다. Preview, RC와 정식의 발행 정책은 [릴리스 운영](RELEASING.md)을 참고하세요.
+## Preview 설치
+
+개발 중인 기능을 시험하고 호환성 문제를 확인하는 채널입니다. 공개 태그는 [`v0.1.0-preview.3`](https://github.com/NARUBROWN/spine-nethttp-platform/tree/v0.1.0-preview.3)입니다. 이 태그의 `go.mod`는 Spine `v0.7.0-preview.4`와 Go 1.25.5 이상을 지정합니다.
+
+```sh
+go get github.com/NARUBROWN/spine-nethttp-platform@v0.1.0-preview.3-preview.3
+```
+
+다른 채널은 [RC](https://github.com/NARUBROWN/spine-nethttp-platform/tree/rc) | [Stable](https://github.com/NARUBROWN/spine-nethttp-platform/tree/main)에서 확인하세요.
+
+
+이 플랫폼은 HTTP 계약 `spine.http-adapter/v3`를 구현합니다. CLI에서 net/http 앱을 생성하려면 `spine new`에 `--platform nethttp`를 지정하고, 생성된 `go.mod`에서 선택된 코어와 플랫폼 버전을 확인하세요. [릴리스 운영](RELEASING.md)에서 발행 절차를 확인할 수 있습니다.
 
 ## 앱 구성
 

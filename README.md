@@ -4,7 +4,7 @@ Spine 앱을 Go 표준 `net/http` 서버에서 실행합니다. 요청 본문, D
 
 ## Preview 설치
 
-개발 중인 기능을 시험하고 호환성 문제를 확인하는 채널입니다. 공개 태그는 [`v0.1.0-preview.3`](https://github.com/NARUBROWN/spine-nethttp-platform/tree/v0.1.0-preview.3)입니다. 이 태그의 `go.mod`는 Spine `v0.7.0-preview.4`와 Go 1.25.5 이상을 지정합니다. 이 브랜치의 릴리스 정책 기준 버전은 `v0.1.0`입니다.
+개발 중인 기능을 시험하고 호환성 문제를 확인하는 채널입니다. 공개 태그는 [`v0.1.0-preview.3`](https://github.com/NARUBROWN/spine-nethttp-platform/tree/v0.1.0-preview.3)입니다. 이 태그의 `go.mod`는 Spine `v0.7.0-preview.4`와 Go 1.25.5 이상을 지정합니다. 이 브랜치의 다음 후보는 `v0.1.1-preview.1`이며 릴리스 정책 기준 버전은 `v0.1.1`입니다.
 
 ```sh
 go get github.com/NARUBROWN/spine-nethttp-platform@v0.1.0-preview.3

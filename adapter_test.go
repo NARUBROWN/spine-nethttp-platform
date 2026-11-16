@@ -229,3 +229,35 @@ func TestOutputCommitAndObservableErrors(t *testing.T) {
 		t.Fatalf("관측 가능한 출력 오류와 논리적 확정을 구분해야 합니다: %v", err)
 	}
 }
+
+func TestWriteStringContentType(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		contentType string
+		want        string
+	}{
+		{"기본값", "", "text/plain; charset=UTF-8"},
+		{"HTML", "text/html; charset=utf-8", "text/html; charset=utf-8"},
+		{"CSS", "text/css; charset=utf-8", "text/css; charset=utf-8"},
+		{"JavaScript", "text/javascript; charset=utf-8", "text/javascript; charset=utf-8"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			w := &responseWriter{native: rec}
+			if tc.contentType != "" {
+				w.SetHeader("Content-Type", tc.contentType)
+			}
+			if err := w.WriteString(http.StatusCreated, "body"); err != nil {
+				t.Fatal(err)
+			}
+			result := rec.Result()
+			defer result.Body.Close()
+			if got := result.Header.Get("Content-Type"); got != tc.want {
+				t.Errorf("Content-Type = %q, want %q", got, tc.want)
+			}
+			if result.StatusCode != http.StatusCreated || rec.Body.String() != "body" || !w.IsCommitted() {
+				t.Fatalf("status = %d, body = %q, committed = %t", result.StatusCode, rec.Body.String(), w.IsCommitted())
+			}
+		})
+	}
+}

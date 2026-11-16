@@ -32,7 +32,9 @@ func (w *responseWriter) WriteJSON(status int, body json.RawMessage) error {
 }
 
 func (w *responseWriter) WriteString(status int, body string) error {
-	w.SetHeader("Content-Type", "text/plain; charset=UTF-8")
+	if w.native.Header().Get("Content-Type") == "" {
+		w.SetHeader("Content-Type", "text/plain; charset=UTF-8")
+	}
 	return w.WriteBytes(status, []byte(body))
 }
 

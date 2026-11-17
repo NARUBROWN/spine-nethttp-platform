@@ -1,21 +1,22 @@
-# Spine net/http 플랫폼
+English | [Korean](README.ko.md)
 
-Spine 앱을 Go 표준 `net/http` 서버에서 실행합니다. 요청 본문, DTO 바인딩과 검증은 Spine 코어가 처리하며 플랫폼은 원시 입력, 응답 출력과 서버 수명을 담당합니다. 직접 의존하는 모듈은 Spine 하나입니다.
+# Spine net/http Platform
 
-## Preview 설치
+Run Spine applications on Go's standard `net/http` server. Spine core handles request bodies, DTO binding, and validation; the platform handles raw input, response output, and server lifetime. Spine is its only direct module dependency.
 
-개발 중인 기능을 시험하고 호환성 문제를 확인하는 채널입니다. 공개 태그는 [`v0.1.0-preview.3`](https://github.com/NARUBROWN/spine-nethttp-platform/tree/v0.1.0-preview.3)입니다. 이 태그의 `go.mod`는 Spine `v0.7.0-preview.4`와 Go 1.25.5 이상을 지정합니다. 이 브랜치의 다음 후보는 `v0.1.1-preview.1`이며 릴리스 정책 기준 버전은 `v0.1.1`입니다.
+## Preview installation
+
+Use this channel to try features under development and check compatibility. The published tag is [`v0.1.0-preview.3`](https://github.com/NARUBROWN/spine-nethttp-platform/tree/v0.1.0-preview.3). Its `go.mod` specifies Spine `v0.7.0-preview.4` and Go 1.25.5 or later. The next candidate on this branch is `v0.1.1-preview.1`; the release policy targets `v0.1.1`.
 
 ```sh
 go get github.com/NARUBROWN/spine-nethttp-platform@v0.1.0-preview.3
 ```
 
-다른 채널은 [RC](https://github.com/NARUBROWN/spine-nethttp-platform/tree/rc) | [Stable](https://github.com/NARUBROWN/spine-nethttp-platform/tree/main)에서 확인하세요.
+Other channels: [RC](https://github.com/NARUBROWN/spine-nethttp-platform/tree/rc) | [Stable](https://github.com/NARUBROWN/spine-nethttp-platform/tree/main).
 
+This platform implements `spine.http-adapter/v3`. To generate a net/http application with the CLI, pass `--platform nethttp` to `spine new`, then check the generated `go.mod` for selected core and platform versions. See [release operations](RELEASING.md) for publication procedures.
 
-이 플랫폼은 HTTP 계약 `spine.http-adapter/v3`를 구현합니다. CLI에서 net/http 앱을 생성하려면 `spine new`에 `--platform nethttp`를 지정하고, 생성된 `go.mod`에서 선택된 코어와 플랫폼 버전을 확인하세요. [릴리스 운영](RELEASING.md)에서 발행 절차를 확인할 수 있습니다.
-
-## 앱 구성
+## Application setup
 
 ```go
 import (
@@ -24,12 +25,12 @@ import (
 )
 
 app := spine.New(nethttp.Option())
-// app.Constructor와 app.Route로 컨트롤러와 경로를 등록합니다.
+// Register controllers and routes with app.Constructor and app.Route.
 ```
 
-`nethttp.New()`는 같은 플랫폼을 연결한 앱을 반환합니다. `nethttp.NewFactory()`는 `contract/http.Factory`를 반환하며 생성 시 리스너나 실행 고루틴을 만들지 않습니다.
+`nethttp.New()` returns an application configured with the same platform. `nethttp.NewFactory()` returns `contract/http.Factory` and does not open a listener or start background goroutines during creation.
 
-## Native 미들웨어
+## Native middleware
 
 ```go
 factory := nethttp.NewFactory(nethttp.WithMiddleware(
@@ -43,21 +44,21 @@ factory := nethttp.NewFactory(nethttp.WithMiddleware(
 app := spine.New(spine.WithHTTPAdapter(factory))
 ```
 
-`WithMiddleware`는 먼저 전달한 미들웨어를 바깥에 배치합니다. 모든 생성 함수는 설정 검증 후 준비마다 한 번 호출합니다. nil 함수와 nil handler 결과는 준비 오류입니다. native 경로를 처리하려면 미들웨어에서 해당 요청에 응답하고, 나머지 요청은 `next`에 전달합니다.
+`WithMiddleware` places earlier middleware on the outside. Factories run once per preparation after configuration validation. Nil functions and nil handler results cause preparation errors. Handle native routes directly in middleware and pass other requests to `next`.
 
-플랫폼의 수락 차단과 요청 추적은 미들웨어 바깥에서 시작합니다. `next` 반환 후의 native 후처리도 종료 대기에 포함합니다. 플랫폼의 기본 분기는 `ServeMux`를 사용하지 않으므로 원시 경로를 정리하거나 리다이렉트하지 않습니다. 선택적인 net/http WebSocket 업그레이드는 GET 경로로 분기합니다.
+The platform's admission gate and request tracking wrap the middleware. Shutdown also waits for native post-processing after `next` returns. Default dispatch does not use `ServeMux`, so it does not clean or redirect raw paths. Optional net/http WebSocket upgrades dispatch through GET routes.
 
-## 실행과 종료
+## Serving and shutdown
 
-일반 앱은 Spine의 `RunContext`로 실행합니다. 직접 준비한 앱은 `PreparedApplication.HTTPAdapter().Serve(listener)`로 실행할 수 있습니다. `Serve`는 전달받은 리스너를 소유하며 한 번만 실행합니다.
+Ordinary applications use Spine's `RunContext`. A manually prepared application can use `PreparedApplication.HTTPAdapter().Serve(listener)`. `Serve` owns the supplied listener and runs only once.
 
-외부 서버에는 `spine.NetHTTPHandler(prepared)`로 얻은 handler를 연결합니다. 앱 자원은 `prepared.Close(ctx)`, 외부 서버 자체는 호출자가 종료합니다.
+For external servers, attach the handler from `spine.NetHTTPHandler(prepared)`. Release application resources with `prepared.Close(ctx)`; the caller shuts down the external server itself.
 
-`StopAccepting` 이후 새 요청에는 503을 반환합니다. `Shutdown`은 진행 요청과 native 후처리를 기다립니다. 호출 context가 만료돼도 정리는 계속되며 새 context로 다시 기다릴 수 있습니다. 요청 context는 native handler가 반환하거나 클라이언트가 연결을 끊으면 취소됩니다. 장기 WebSocket 연결은 Spine 런타임이 종료합니다.
+After `StopAccepting`, new requests receive 503. `Shutdown` waits for in-flight requests and native post-processing. Cleanup continues if the calling context expires; wait again with a new context. Request contexts are cancelled when the native handler returns or the client disconnects. Spine's runtime closes long-lived WebSocket connections.
 
-## TLS 실행
+## TLS
 
-인증서를 읽은 `*tls.Config`를 `boot.HTTPOptions.TLS`에 지정합니다. 아래 예시는 `crypto/tls`와 `github.com/NARUBROWN/spine/pkg/boot`를 사용합니다.
+Set `boot.HTTPOptions.TLS` to a `*tls.Config` containing loaded certificates. The example below uses `crypto/tls` and `github.com/NARUBROWN/spine/pkg/boot`.
 
 ```go
 certificate, err := tls.LoadX509KeyPair("server.crt", "server.key")
@@ -72,31 +73,31 @@ return app.RunContext(ctx, boot.Options{
 })
 ```
 
-TLS가 nil이면 평문 HTTP를 실행합니다. 주소를 생략하면 TLS는 `:https`, 평문은 `:http`입니다. Prepare는 인증서 구성과 지원 여부를 검사하며 인증서 선택 콜백은 호출하지 않습니다. 설정과 인증서 바이트는 복사하고 개인 키 객체와 콜백은 공유합니다.
+A nil TLS configuration serves plaintext HTTP. Without an explicit address, TLS uses `:https` and plaintext uses `:http`. Prepare checks certificate configuration and capabilities without invoking certificate selection callbacks. Configuration and certificate bytes are copied; private key objects and callbacks are shared.
 
-`Serve(listener)`는 준비한 TLS 설정을 사용합니다. `httpcontract.WithTLS(config)`를 두 번째 인자로 전달하면 실행 설정을 교체하며 마지막 옵션이 우선합니다. `httpcontract`는 `github.com/NARUBROWN/spine/contract/http`의 import 별칭입니다. `WithTLS(nil)`과 nil 옵션은 오류입니다. 공개 `ServeTLS`는 추가하지 않습니다. 외부 서버에 handler만 연결하면 TLS는 외부 서버가 설정하고 실행합니다. HTTP 버전 선택과 ALPN 정책은 이번 변경 범위에 포함하지 않습니다.
+`Serve(listener)` uses the prepared TLS configuration. Pass `httpcontract.WithTLS(config)` as a second argument to override it; the last option wins. `httpcontract` is an import alias for `github.com/NARUBROWN/spine/contract/http`. `WithTLS(nil)` and nil options return errors. There is no additional public `ServeTLS`. When attaching only a handler, the external server configures and serves TLS. HTTP version selection and ALPN policy are outside this change.
 
-## 옵션
+## Options
 
-설정은 `boot.HTTPOptions`에서 전달합니다.
+Pass settings through `boot.HTTPOptions`.
 
-| 옵션 | 0일 때 플랫폼 기본값 | 명시 값 |
+| Option | Platform default when zero | Explicit value |
 | --- | --- | --- |
-| `ReadHeaderTimeout` | 5초 | 요청 헤더 수신 기한 |
-| `ReadTimeout` | 30초 | 헤더와 본문을 포함한 요청 읽기 기한 |
-| `WriteTimeout` | 30초 | 응답 쓰기 기한 |
-| `IdleTimeout` | 120초 | 다음 keepalive 요청 대기 기한 |
-| `MaxHeaderBytes` | 1 MiB | net/http의 요청 줄과 헤더 파싱 한도 |
-| `MaxBodyBytes` | 32 MiB | 읽는 전체 본문 한도, 음수는 해제 |
-| `DisableRecover` | false | true는 `ErrUnsupportedOption` |
+| `ReadHeaderTimeout` | 5 seconds | Request header deadline |
+| `ReadTimeout` | 30 seconds | Request read deadline, including headers and body |
+| `WriteTimeout` | 30 seconds | Response write deadline |
+| `IdleTimeout` | 120 seconds | Wait for the next keepalive request |
+| `MaxHeaderBytes` | 1 MiB | net/http request line and header parsing limit |
+| `MaxBodyBytes` | 32 MiB | Total body read limit; negative values disable it |
+| `DisableRecover` | false | true returns `ErrUnsupportedOption` |
 
-`net/http.Server` 자체의 패닉 복구는 끌 수 없어 `DisableRecover` 지원을 선언하지 않습니다. Spine 파이프라인의 컨트롤러 패닉 처리는 코어에 남습니다. 외부 서버로 실행할 때 timeout과 헤더 크기는 외부 서버에 설정해야 하며 본문 읽기 제한과 요청 추적은 플랫폼 handler에서도 적용됩니다.
+`net/http.Server` panic recovery cannot be disabled, so the platform does not advertise `DisableRecover` support. The core still handles controller panics in the Spine pipeline. For external servers, configure timeouts and header limits on that server. The platform handler still applies body read limits and request tracking.
 
-`MultipartMemoryBytes`는 코어의 파일 메모리 예산입니다. 파일 크기 제한은 `MaxBodyBytes`가 담당하며, 예산을 넘긴 파일은 임시 디스크에 저장합니다.
+`MultipartMemoryBytes` is the core's file memory budget. `MaxBodyBytes` limits file size; files exceeding the memory budget are stored temporarily on disk.
 
-## 로컬 검증
+## Local verification
 
-v3 코어 작업트리에서 실행합니다.
+Run from the v3 core worktree.
 
 ```sh
 python3 scripts/verify-http-platforms.py \
@@ -105,8 +106,8 @@ python3 scripts/verify-http-platforms.py \
   --output-dir /tmp/spine-http-platform-proof
 ```
 
-스크립트는 Go 1.25.5에서 플랫폼 테스트와 Echo 비교 E2E에 race 검사와 vet을 실행합니다. 저장소의 `go.mod`, `go.sum`은 변경하지 않습니다. E2E는 실제 TCP 서버에서 DTO 결과, 인증 전 무읽기, 본문 제한, multipart 파일 수명, 종료 대기, WebSocket과 runtime OpenAPI를 검사합니다. TLS는 HTTPS 실행, 설정 교체, 인증서 콜백, 신뢰 검증 실패와 연결 해제 취소를 확인합니다. HTTP/2와 성능은 이 검증 범위에 포함하지 않습니다.
+The script runs platform tests and Echo comparison E2E tests with the race detector and vet on Go 1.25.5. It preserves repository `go.mod` and `go.sum` files. Real TCP E2E tests check DTO results, no reads before authentication, body limits, multipart file lifetime, shutdown draining, WebSocket, and runtime OpenAPI. TLS checks cover HTTPS serving, configuration overrides, certificate callbacks, failed trust verification, and cancellation on disconnect. HTTP/2 and performance are outside this verification scope.
 
-## 릴리스와 공개 계약
+## Releases and public contracts
 
-이 플랫폼은 자체 버전과 채널로 발행합니다. `go.mod`의 Spine 버전은 사용하는 공개 계약의 최소 의존성이며 코어 릴리스 채널과 별도로 관리합니다. CI와 공개 설치 검증은 이 모듈의 의존성으로 플랫폼 자체를 검사합니다. 새로운 코어와 기존 플랫폼 태그의 조합 검증은 코어 릴리스에서 수행합니다.
+This platform publishes its own versions and release channels. The Spine version in `go.mod` is the minimum dependency for its public contracts and is managed separately from the core release channel. CI and public installation checks verify the platform against this module's dependencies. Core releases verify combinations of a new core and existing platform tags.
